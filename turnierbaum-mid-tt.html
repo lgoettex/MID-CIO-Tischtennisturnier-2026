@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MID Tischtennisturnier – CIO Cup</title>
+<style>
+  :root {
+    --navy:    #003366;
+    --navy-lt: #004a8f;
+    --gold:    #F5A800;
+    --gold-lt: #ffc233;
+    --bg:      #EEF2F7;
+    --card:    #ffffff;
+    --border:  #c8d5e8;
+    --text:    #1a2b3c;
+    --muted:   #6b7f95;
+    --winner:  #d4edda;
+    --winner-border: #28a745;
+    --radius:  6px;
+    --shadow:  0 2px 8px rgba(0,51,102,.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 3px 12px rgba(0,0,0,.35);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 28px;
+    border-bottom: 3px solid var(--gold);
+  }
+  .header-emblem {
+    width: 52px; height: 52px;
+    flex-shrink: 0;
+  }
+  .header-titles h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    line-height: 1.2;
+  }
+  .header-titles p {
+    font-size: .8rem;
+    color: #b8cde8;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .header-badge {
+    margin-left: auto;
+    background: var(--gold);
+    color: var(--navy);
+    font-weight: 800;
+    font-size: .75rem;
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: .05em;
+    white-space: nowrap;
+  }
+  .header-nav {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding: 0 28px;
+    scrollbar-width: none;
+  }
+  .header-nav button {
+    background: none;
+    border: none;
+    color: #b8cde8;
+    padding: 9px 16px;
+    font-size: .82rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: color .2s, border-color .2s;
+    font-family: inherit;
+  }
+  .header-nav button:hover,
+  .header-nav button.active {
+    color: #fff;
+    border-bottom-color: var(--gold);
+  }
+
+  /* ── LEGEND / INFO BAR ── */
+  .info-bar {
+    background: var(--navy-lt);
+    color: #cde0f5;
+    font-size: .78rem;
+    padding: 7px 28px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .info-bar span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-winner { background: var(--winner-border); }
+  .dot-empty  { background: #aaa; border: 1px solid #888; }
+  .info-bar a {
+    color: var(--gold-lt);
+    text-decoration: none;
+    margin-left: auto;
+    font-weight: 600;
+  }
+  .info-bar a:hover { text-decoration: underline; }
+
+  /* ── MAIN BRACKET AREA ── */
+  .bracket-outer {
+    padding: 24px 16px 40px;
+    overflow-x: auto;
+  }
+  .bracket-scroll {
+    display: flex;
+    gap: 0;
+    min-width: max-content;
+    padding-bottom: 8px;
+  }
+
+  /* ── ROUND COLUMN ── */
+  .round-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .round-label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--navy);
+    background: var(--gold);
+    padding: 4px 14px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    white-space: nowrap;
+  }
+  .round-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+    flex: 1;
+    justify-content: space-around;
+  }
+
+  /* ── MATCH CARD ── */
+  .match-wrapper {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  .match-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    width: 188px;
+    overflow: hidden;
+    transition: box-shadow .2s;
+  }
+  .match-card:hover { box-shadow: 0 4px 16px rgba(0,51,102,.18); }
+
+  .match-num {
+    font-size: .62rem;
+    color: var(--muted);
+    background: #f0f4f9;
+    border-bottom: 1px solid var(--border);
+    padding: 2px 8px;
+    text-align: right;
+    letter-spacing: .05em;
+  }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-bottom: 1px solid #eef2f7;
+    position: relative;
+  }
+  .player-row:last-of-type { border-bottom: none; }
+  .player-row.is-winner {
+    background: var(--winner);
+  }
+  .player-row.is-winner .player-name { font-weight: 700; color: #155724; }
+
+  .player-name {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: .8rem;
+    padding: 7px 8px;
+    color: var(--text);
+    font-family: inherit;
+    min-width: 0;
+    outline: none;
+    cursor: text;
+  }
+  .player-name::placeholder { color: #bbb; font-style: italic; }
+  .player-name:focus { background: #f0f7ff; }
+
+  .player-ref {
+    font-size: .67rem;
+    color: var(--muted);
+    padding: 0 4px 0 0;
+    white-space: nowrap;
+    max-width: 55px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player-ref-input {
+    border: none;
+    background: transparent;
+    font-size: .67rem;
+    color: var(--muted);
+    width: 54px;
+    font-family: inherit;
+    outline: none;
+    text-align: right;
+    padding: 0 4px 0 0;
+  }
+  .player-ref-input::placeholder { color: #ccc; }
+
+  .score-input {
+    border: none;
+    border-left: 1px solid var(--border);
+    background: #f8fafc;
+    width: 32px;
+    text-align: center;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--navy);
+    padding: 7px 4px;
+    font-family: inherit;
+    outline: none;
+  }
+  .score-input:focus { background: #e8f0ff; }
+
+  /* ── CONNECTOR LINES ── */
+  .connector {
+    width: 20px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  /* lines drawn via SVG overlay per round */
+
+  /* ── FINAL TROPHY ── */
+  .final-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+  }
+  .trophy-box {
+    background: linear-gradient(135deg, var(--gold) 0%, #e8920a 100%);
+    color: var(--navy);
+    border-radius: 10px;
+    padding: 20px 24px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(245,168,0,.45);
+    min-width: 160px;
+  }
+  .trophy-box .trophy-icon { font-size: 2.5rem; line-height: 1; }
+  .trophy-box .trophy-title {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-top: 6px;
+    opacity: .75;
+  }
+  .trophy-box .trophy-name {
+    font-size: 1rem;
+    font-weight: 800;
+    margin-top: 8px;
+    min-height: 24px;
+    border-bottom: 2px solid rgba(0,51,102,.3);
+    padding-bottom: 4px;
+  }
+  .trophy-box .trophy-ref {
+    font-size: .72rem;
+    margin-top: 6px;
+    opacity: .7;
+    font-weight: 600;
+  }
+
+  /* ── RESET BUTTON ── */
+  .actions-bar {
+    display: flex;
+    gap: 10px;
+    padding: 12px 28px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+  }
+  .btn {
+    padding: 8px 20px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: inherit;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-danger   { background: #dc3545; color: #fff; }
+  .btn-outline  { background: transparent; border: 1.5px solid var(--navy); color: var(--navy); }
+
+  /* ── PRINT ── */
+  @media print {
+    header, .actions-bar, .info-bar { display: none !important; }
+    .bracket-outer { padding: 0; overflow: visible; }
+    body { background: #fff; }
+    .bracket-scroll { transform: scale(.55); transform-origin: top left; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <!-- SVG des Sachsen-Anhalt Wappens (vereinfacht) -->
+    <svg class="header-emblem" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+      <rect width="52" height="52" rx="4" fill="#F5A800"/>
+      <text x="26" y="34" text-anchor="middle" font-size="28" font-family="serif" fill="#003366">🦅</text>
+    </svg>
+    <div class="header-titles">
+      <h1>MID Tischtennisturnier &ndash; CIO Cup</h1>
+      <p>Ministerium für Infrastruktur und Digitales des Landes Sachsen-Anhalt</p>
+    </div>
+    <div class="header-badge">KO-System · 64 Teilnehmer</div>
+  </div>
+  <nav class="header-nav" id="roundNav"></nav>
+</header>
+
+<div class="info-bar">
+  <span><span class="dot dot-winner"></span> Sieger/in eingetragen</span>
+  <span><span class="dot dot-empty"></span> Noch offen</span>
+  <span>📝 Namen, Referat &amp; Ergebnisse direkt in die Felder eintragen – alles wird automatisch gespeichert.</span>
+  <a href="#" onclick="exportCSV();return false;">↓ CSV exportieren</a>
+</div>
+
+<div class="bracket-outer">
+  <div class="bracket-scroll" id="bracketScroll"></div>
+</div>
+
+<div class="actions-bar">
+  <button class="btn btn-primary" onclick="saveAll()">💾 Speichern (LocalStorage)</button>
+  <button class="btn btn-outline" onclick="window.print()">🖨️ Drucken / PDF</button>
+  <button class="btn btn-danger" onclick="resetAll()">🗑️ Zurücksetzen</button>
+  <span style="margin-left:auto;font-size:.78rem;color:#888;" id="saveStatus"></span>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const TOTAL_PLAYERS = 64;
+const ROUNDS = Math.log2(TOTAL_PLAYERS); // 6 rounds + final = 7 cols
+const ROUND_LABELS = [
+  'Runde 1\n(64)', 'Runde 2\n(32)', 'Runde 3\n(16)', 'Viertelfinale\n(8)',
+  'Halbfinale\n(4)', 'Finale\n(2)', 'Sieger'
+];
+const STORAGE_KEY = 'mid_tt_turnier_2025';
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+// matches[round][matchIndex] = { p1:{name,ref,score}, p2:{name,ref,score} }
+let matches = [];
+
+function initMatches() {
+  matches = [];
+  for (let r = 0; r < ROUNDS; r++) {
+    const count = TOTAL_PLAYERS / Math.pow(2, r + 1);
+    const round = [];
+    for (let m = 0; m < count; m++) {
+      round.push({
+        p1: { name: '', ref: '', score: '' },
+        p2: { name: '', ref: '', score: '' }
+      });
+    }
+    matches.push(round);
+  }
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  const scroll = document.getElementById('bracketScroll');
+  scroll.innerHTML = '';
+
+  for (let r = 0; r < ROUNDS; r++) {
+    const count = matches[r].length;
+    const col = document.createElement('div');
+    col.className = 'round-col';
+    col.style.cssText = `min-height:${TOTAL_PLAYERS * 28}px;`;
+
+    const label = document.createElement('div');
+    label.className = 'round-label';
+    label.textContent = ROUND_LABELS[r].replace(/\n.*/,'');
+    col.appendChild(label);
+
+    const matchesDiv = document.createElement('div');
+    matchesDiv.className = 'round-matches';
+    matchesDiv.style.height = `${TOTAL_PLAYERS * 28}px`;
+
+    for (let m = 0; m < count; m++) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'match-wrapper';
+      wrapper.appendChild(buildMatchCard(r, m));
+      // right connector line (not on last round)
+      if (r < ROUNDS - 1) {
+        const conn = buildConnector(r, m, count);
+        wrapper.appendChild(conn);
+      }
+      matchesDiv.appendChild(wrapper);
+    }
+    col.appendChild(matchesDiv);
+    scroll.appendChild(col);
+  }
+
+  // Trophy column
+  const trophyCol = buildTrophyCol();
+  scroll.appendChild(trophyCol);
+
+  // Nav buttons
+  const nav = document.getElementById('roundNav');
+  nav.innerHTML = '';
+  ROUND_LABELS.slice(0, ROUNDS).forEach((lbl, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = lbl.split('\n')[0];
+    btn.onclick = () => {
+      document.querySelectorAll('.round-col')[i]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    };
+    nav.appendChild(btn);
+  });
+}
+
+function buildMatchCard(r, m) {
+  const data = matches[r][m];
+  const card = document.createElement('div');
+  card.className = 'match-card';
+
+  const num = document.createElement('div');
+  num.className = 'match-num';
+  num.textContent = `R${r+1} · M${m+1}`;
+  card.appendChild(num);
+
+  ['p1','p2'].forEach((p, pi) => {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.id = `row-${r}-${m}-${p}`;
+
+    const nameIn = document.createElement('input');
+    nameIn.className = 'player-name';
+    nameIn.type = 'text';
+    nameIn.placeholder = `Spieler/in ${pi+1}`;
+    nameIn.value = data[p].name;
+    nameIn.dataset.r = r; nameIn.dataset.m = m; nameIn.dataset.p = p; nameIn.dataset.field = 'name';
+    nameIn.addEventListener('input', onFieldChange);
+    row.appendChild(nameIn);
+
+    const refIn = document.createElement('input');
+    refIn.className = 'player-ref-input';
+    refIn.type = 'text';
+    refIn.placeholder = 'Ref.';
+    refIn.value = data[p].ref;
+    refIn.title = 'Referat / Abteilung';
+    refIn.dataset.r = r; refIn.dataset.m = m; refIn.dataset.p = p; refIn.dataset.field = 'ref';
+    refIn.addEventListener('input', onFieldChange);
+    row.appendChild(refIn);
+
+    const scoreIn = document.createElement('input');
+    scoreIn.className = 'score-input';
+    scoreIn.type = 'text';
+    scoreIn.inputMode = 'numeric';
+    scoreIn.placeholder = '–';
+    scoreIn.value = data[p].score;
+    scoreIn.maxLength = 3;
+    scoreIn.dataset.r = r; scoreIn.dataset.m = m; scoreIn.dataset.p = p; scoreIn.dataset.field = 'score';
+    scoreIn.addEventListener('input', onScoreChange);
+    row.appendChild(scoreIn);
+
+    card.appendChild(row);
+    updateWinnerHighlight(r, m);
+  });
+
+  return card;
+}
+
+function buildConnector(r, m, count) {
+  // Thin vertical + horizontal SVG line connecting match to next round
+  const slotHeight = (TOTAL_PLAYERS * 28) / count;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '24');
+  svg.setAttribute('height', String(slotHeight));
+  svg.style.overflow = 'visible';
+
+  const midY = slotHeight / 2;
+  const partnerOffset = (m % 2 === 0) ? slotHeight : -slotHeight;
+  const partnerMidY = midY + partnerOffset;
+  const joinY = (midY + partnerMidY) / 2;
+
+  // Horizontal line from this match
+  const hLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+  hLine.setAttribute('x1','0'); hLine.setAttribute('y1', String(midY));
+  hLine.setAttribute('x2','24'); hLine.setAttribute('y2', String(midY));
+  hLine.setAttribute('stroke','#F5A800'); hLine.setAttribute('stroke-width','1.5');
+  svg.appendChild(hLine);
+
+  // Vertical connector to sibling (only draw once, for even-indexed matches)
+  if (m % 2 === 0) {
+    const vLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+    vLine.setAttribute('x1','24'); vLine.setAttribute('y1', String(midY));
+    vLine.setAttribute('x2','24'); vLine.setAttribute('y2', String(midY + slotHeight));
+    vLine.setAttribute('stroke','#F5A800'); vLine.setAttribute('stroke-width','1.5');
+    svg.appendChild(vLine);
+  }
+
+  return svg;
+}
+
+function buildTrophyCol() {
+  const col = document.createElement('div');
+  col.className = 'final-col';
+  col.style.minHeight = `${TOTAL_PLAYERS * 28}px`;
+  col.style.padding = '40px 24px 0 8px';
+
+  const box = document.createElement('div');
+  box.className = 'trophy-box';
+
+  box.innerHTML = `
+    <div class="trophy-icon">🏆</div>
+    <div class="trophy-title">CIO Cup – Sieger/in</div>
+    <div class="trophy-name" id="trophy-name">${getTrophyName()}</div>
+    <div class="trophy-ref" id="trophy-ref">${getTrophyRef()}</div>
+  `;
+  col.appendChild(box);
+  return col;
+}
+
+function getTrophyName() {
+  if (matches.length < ROUNDS) return '–';
+  const final = matches[ROUNDS-1][0];
+  if (final.p1.score && final.p2.score) {
+    const s1 = parseInt(final.p1.score)||0;
+    const s2 = parseInt(final.p2.score)||0;
+    if (s1 > s2 && final.p1.name) return final.p1.name;
+    if (s2 > s1 && final.p2.name) return final.p2.name;
+  }
+  return '–';
+}
+function getTrophyRef() {
+  if (matches.length < ROUNDS) return '';
+  const final = matches[ROUNDS-1][0];
+  if (final.p1.score && final.p2.score) {
+    const s1 = parseInt(final.p1.score)||0;
+    const s2 = parseInt(final.p2.score)||0;
+    if (s1 > s2 && final.p1.ref) return final.p1.ref;
+    if (s2 > s1 && final.p2.ref) return final.p2.ref;
+  }
+  return '';
+}
+
+// ── EVENTS ──────────────────────────────────────────────────────────────────
+function onFieldChange(e) {
+  const { r, m, p, field } = e.target.dataset;
+  matches[r][m][p][field] = e.target.value;
+  // propagate winner name to next round
+  if (field === 'name') propagateWinner(parseInt(r), parseInt(m));
+}
+
+function onScoreChange(e) {
+  const { r, m, p } = e.target.dataset;
+  matches[r][m][p].score = e.target.value;
+  updateWinnerHighlight(parseInt(r), parseInt(m));
+  propagateWinner(parseInt(r), parseInt(m));
+  updateTrophy();
+}
+
+function updateWinnerHighlight(r, m) {
+  const d = matches[r][m];
+  const row1 = document.getElementById(`row-${r}-${m}-p1`);
+  const row2 = document.getElementById(`row-${r}-${m}-p2`);
+  if (!row1 || !row2) return;
+  row1.classList.remove('is-winner');
+  row2.classList.remove('is-winner');
+  const s1 = parseInt(d.p1.score)||0;
+  const s2 = parseInt(d.p2.score)||0;
+  if (d.p1.score !== '' && d.p2.score !== '') {
+    if (s1 > s2) row1.classList.add('is-winner');
+    else if (s2 > s1) row2.classList.add('is-winner');
+  }
+}
+
+function propagateWinner(r, m) {
+  if (r >= ROUNDS - 1) return;
+  const d = matches[r][m];
+  const s1 = parseInt(d.p1.score)||0;
+  const s2 = parseInt(d.p2.score)||0;
+  if (d.p1.score === '' || d.p2.score === '') return;
+
+  const nextM = Math.floor(m / 2);
+  const nextP = m % 2 === 0 ? 'p1' : 'p2';
+  const winner = s1 > s2 ? d.p1 : (s2 > s1 ? d.p2 : null);
+  if (!winner) return;
+
+  matches[r+1][nextM][nextP].name = winner.name;
+  matches[r+1][nextM][nextP].ref  = winner.ref;
+
+  // Update the input fields in the next round card
+  const nameEl = document.querySelector(`input[data-r="${r+1}"][data-m="${nextM}"][data-p="${nextP}"][data-field="name"]`);
+  const refEl  = document.querySelector(`input[data-r="${r+1}"][data-m="${nextM}"][data-p="${nextP}"][data-field="ref"]`);
+  if (nameEl) nameEl.value = winner.name;
+  if (refEl)  refEl.value  = winner.ref;
+}
+
+function updateTrophy() {
+  const tn = document.getElementById('trophy-name');
+  const tr = document.getElementById('trophy-ref');
+  if (tn) tn.textContent = getTrophyName() || '–';
+  if (tr) tr.textContent = getTrophyRef();
+}
+
+// ── PERSISTENCE ─────────────────────────────────────────────────────────────
+function saveAll() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
+  document.getElementById('saveStatus').textContent = '✓ Gespeichert – ' + new Date().toLocaleTimeString('de-DE');
+}
+
+function loadAll() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  try {
+    matches = JSON.parse(raw);
+    return true;
+  } catch { return false; }
+}
+
+function resetAll() {
+  if (!confirm('Alle eingetragenen Daten wirklich löschen?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  initMatches();
+  render();
+  document.getElementById('saveStatus').textContent = 'Zurückgesetzt.';
+}
+
+// ── CSV EXPORT ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  let csv = 'Runde;Match;Spieler1;Referat1;Ergebnis1;Spieler2;Referat2;Ergebnis2\n';
+  matches.forEach((round, r) => {
+    round.forEach((m, mi) => {
+      csv += `${r+1};${mi+1};${m.p1.name};${m.p1.ref};${m.p1.score};${m.p2.name};${m.p2.ref};${m.p2.score}\n`;
+    });
+  });
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'mid-tt-turnier.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── AUTO-SAVE ────────────────────────────────────────────────────────────────
+let autoSaveTimer;
+document.addEventListener('input', () => {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    saveAll();
+  }, 1500);
+});
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+initMatches();
+if (!loadAll()) initMatches();
+render();
+</script>
+</body>
+</html>
