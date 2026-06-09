@@ -1,0 +1,166 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif)}
+.tb-wrap{overflow-x:auto;padding:12px 0}
+.tb-grid{display:flex;gap:0;align-items:stretch;min-width:1400px}
+.round-col{display:flex;flex-direction:column;min-width:170px}
+.round-header{font-size:11px;font-weight:500;color:var(--color-text-secondary,#888);text-align:center;padding:6px 4px 10px;letter-spacing:.04em;text-transform:uppercase}
+.matches{display:flex;flex-direction:column;flex:1;justify-content:space-around}
+.match{display:flex;flex-direction:column;padding:0 4px;position:relative}
+.match::after{content:'';position:absolute;right:-1px;top:50%;width:5px;height:1px;background:var(--color-border-secondary,#ccc)}
+.player{display:flex;align-items:center;gap:4px;margin:1px 0}
+.player input[type=text]{font-size:11px;padding:3px 5px;border:0.5px solid var(--color-border-tertiary,#ddd);border-radius:4px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);width:100%;min-width:0;transition:border-color .15s}
+.player input[type=text]:focus{outline:none;border-color:var(--color-border-primary,#888)}
+.score-box{width:24px;flex-shrink:0;font-size:11px;padding:3px 2px;border:0.5px solid var(--color-border-tertiary,#ddd);border-radius:4px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#000);text-align:center;transition:border-color .15s}
+.score-box:focus{outline:none;border-color:var(--color-border-primary,#888)}
+.match-divider{height:1px;background:var(--color-border-tertiary,#eee);margin:3px 0}
+.connector{width:12px;flex-shrink:0;position:relative;display:flex;align-items:center}
+.connector::before{content:'';position:absolute;left:0;width:100%;height:1px;background:var(--color-border-secondary,#ccc)}
+.winner-badge{font-size:9px;font-weight:500;background:var(--color-background-success,#e6f4ea);color:var(--color-text-success,#1a7a3c);border-radius:3px;padding:1px 4px;margin-left:2px;white-space:nowrap;display:none}
+.player.is-winner .winner-badge{display:inline}
+.player.is-winner input[type=text]{border-color:var(--color-border-success,#6db88a);font-weight:500}
+.round-col.final-col .round-header{color:var(--color-text-primary,#222);font-size:12px}
+.trophy{font-size:18px;text-align:center;padding:6px 0 0}
+.btn-row{display:flex;gap:8px;padding:10px 4px 6px;flex-wrap:wrap}
+button.tb-btn{font-size:12px;padding:5px 12px;border:0.5px solid var(--color-border-secondary,#ccc);border-radius:6px;background:transparent;color:var(--color-text-primary,#000);cursor:pointer}
+button.tb-btn:hover{background:var(--color-background-secondary,#f5f5f5)}
+.hint{font-size:11px;color:var(--color-text-secondary,#888);padding:0 4px 8px}
+</style>
+
+<div class="btn-row">
+  <button class="tb-btn" onclick="clearAll()">🗑 Alle Namen löschen</button>
+  <button class="tb-btn" onclick="clearScores()">↺ Ergebnisse zurücksetzen</button>
+  <button class="tb-btn" onclick="exportData()">📋 Daten kopieren (JSON)</button>
+</div>
+<p class="hint">Tipp: Namen & Referat im Namensfeld eintragen (z. B. „Müller – Ref. IT"), Punkte im Zahlenfeld. Sieger automatisch hervorgehoben.</p>
+
+<div class="tb-wrap">
+  <div class="tb-grid" id="grid"></div>
+</div>
+
+<script>
+const ROUNDS=[
+  {name:"Runde 1 (Achtelfinale-Vorrunde)",matches:32},
+  {name:"Runde 2",matches:16},
+  {name:"Runde 3",matches:8},
+  {name:"Viertelfinale",matches:4},
+  {name:"Halbfinale",matches:2},
+  {name:"Finale",matches:1}
+];
+
+let state={};
+
+function key(r,m,p){return `r${r}m${m}p${p}`}
+function skey(r,m,p){return `s${r}m${m}p${p}`}
+
+function getInput(k){return document.getElementById(k)}
+
+function buildGrid(){
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  ROUNDS.forEach((rd,ri)=>{
+    const col=document.createElement('div');
+    col.className='round-col'+(ri===ROUNDS.length-1?' final-col':'');
+    const hdr=document.createElement('div');
+    hdr.className='round-header';
+    hdr.textContent=rd.name;
+    col.appendChild(hdr);
+    const matches=document.createElement('div');
+    matches.className='matches';
+    for(let mi=0;mi<rd.matches;mi++){
+      const match=document.createElement('div');
+      match.className='match';
+      [0,1].forEach(pi=>{
+        const row=document.createElement('div');
+        row.className='player';
+        row.id=`prow-${ri}-${mi}-${pi}`;
+        const inp=document.createElement('input');
+        inp.type='text';
+        inp.placeholder=ri===0?`Spieler ${mi*2+pi+1}`:'—';
+        inp.id=key(ri,mi,pi);
+        inp.value=state[key(ri,mi,pi)]||'';
+        inp.addEventListener('input',()=>{state[key(ri,mi,pi)]=inp.value});
+        const sc=document.createElement('input');
+        sc.type='text';
+        sc.inputMode='numeric';
+        sc.className='score-box';
+        sc.id=skey(ri,mi,pi);
+        sc.value=state[skey(ri,mi,pi)]||'';
+        sc.placeholder='—';
+        sc.maxLength=2;
+        sc.addEventListener('input',()=>{state[skey(ri,mi,pi)]=sc.value;updateWinner(ri,mi)});
+        const badge=document.createElement('span');
+        badge.className='winner-badge';
+        badge.textContent='✓';
+        row.appendChild(inp);
+        row.appendChild(sc);
+        row.appendChild(badge);
+        match.appendChild(row);
+        if(pi===0){
+          const div=document.createElement('div');
+          div.className='match-divider';
+          match.appendChild(div);
+        }
+      });
+      matches.appendChild(match);
+    }
+    col.appendChild(matches);
+    if(ri===ROUNDS.length-1){
+      const trophy=document.createElement('div');
+      trophy.className='trophy';
+      trophy.innerHTML='🏆';
+      col.appendChild(trophy);
+    }
+    grid.appendChild(col);
+  });
+  ROUNDS.forEach((_,ri)=>{
+    for(let mi=0;mi<ROUNDS[ri].matches;mi++){
+      updateWinner(ri,mi);
+    }
+  });
+}
+
+function updateWinner(ri,mi){
+  const s0=parseInt(state[skey(ri,mi,0)])||0;
+  const s1=parseInt(state[skey(ri,mi,1)])||0;
+  const row0=document.getElementById(`prow-${ri}-${mi}-0`);
+  const row1=document.getElementById(`prow-${ri}-${mi}-1`);
+  if(!row0||!row1)return;
+  row0.classList.remove('is-winner');
+  row1.classList.remove('is-winner');
+  const sc0=state[skey(ri,mi,0)];
+  const sc1=state[skey(ri,mi,1)];
+  if(sc0!==undefined&&sc0!==''&&sc1!==undefined&&sc1!==''){
+    const winner=s0>s1?0:s1>s0?1:-1;
+    if(winner===0)row0.classList.add('is-winner');
+    if(winner===1)row1.classList.add('is-winner');
+    if(winner>=0&&ri+1<ROUNDS.length){
+      const nextMatch=Math.floor(mi/2);
+      const nextPlayer=mi%2;
+      const wName=state[key(ri,mi,winner)]||'';
+      const nk=key(ri+1,nextMatch,nextPlayer);
+      state[nk]=wName;
+      const inp=getInput(nk);
+      if(inp)inp.value=wName;
+    }
+  }
+}
+
+function clearAll(){
+  if(!confirm('Wirklich alle Namen löschen?'))return;
+  Object.keys(state).forEach(k=>{if(k.startsWith('r'))delete state[k]});
+  buildGrid();
+}
+function clearScores(){
+  if(!confirm('Alle Ergebnisse zurücksetzen?'))return;
+  Object.keys(state).forEach(k=>{if(k.startsWith('s'))delete state[k]});
+  buildGrid();
+}
+function exportData(){
+  const out=JSON.stringify(state,null,2);
+  navigator.clipboard.writeText(out).then(()=>alert('Daten in Zwischenablage kopiert!'));
+}
+
+buildGrid();
+</script>
